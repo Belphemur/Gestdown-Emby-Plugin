@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Addic7ed.Model;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Configuration;
@@ -38,6 +39,7 @@ namespace Addic7ed
         private readonly string _baseUrl = "https://www.addic7ed.com";
         private DateTimeOffset _lastLogin;
         private readonly ILocalizationManager _localizationManager;
+        private readonly Dictionary<string, ShowCache> _showCaches = new Dictionary<string, ShowCache>();
 
         public Addic7edDownloader(ILogger logger, IHttpClient httpClient, IServerConfigurationManager config, IEncryptionManager encryption, IJsonSerializer json, IFileSystem fileSystem, ILocalizationManager localizationManager)
         {
@@ -239,8 +241,14 @@ namespace Addic7ed
 
         private async Task<string> GetShow(string name, CancellationToken cancellationToken)
         {
+            if (_showCaches.TryGetValue(name, out var showCache) && !showCache.IsExpired)
+            {
+                return showCache.ShowId;
+            }
             var shows = await GetShows(cancellationToken).ConfigureAwait(false);
-            return shows.ContainsKey(name) ? shows[name] : "";
+            var show = shows.ContainsKey(name) ? shows[name] : null;
+            _showCaches[name] = new ShowCache(name);
+            return show;
         }
 
         private async Task<Dictionary<string, string>> GetShows(CancellationToken cancellationToken)
@@ -304,13 +312,21 @@ namespace Addic7ed
 
         private async Task<IEnumerable<Addic7edResult>> GetSeason(string id, int? season, CancellationToken cancellationToken)
         {
+            if (_showCaches.TryGetValue(id, out var showCache) && season.HasValue && showCache.SeasonEpisodeCount.TryGetValue(season.Value, out var nbEpisode) && nbEpisode == 0)
+            {
+                return new List<Addic7edResult>();
+            }
             if (string.IsNullOrWhiteSpace(id))
             {
                 return new List<Addic7edResult>();
             }
             using (var res = await GetResponse($"ajax_loadShow.php?show={id}&season={season}", cancellationToken).ConfigureAwait(false))
             {
-                return await ParseEpisode(res).ConfigureAwait(false);
+                var episodes = (await ParseEpisode(res).ConfigureAwait(false)).ToArray();
+                // ReSharper disable once PossibleNullReferenceException
+                // ReSharper disable once PossibleInvalidOperationException
+                showCache.SeasonEpisodeCount[season.Value] = episodes.Length;
+                return episodes;
             }
         }
 
@@ -386,13 +402,17 @@ namespace Addic7ed
                 var showId = await GetShow(request.SeriesName, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(showId))
                 {
+                    _logger?.Info(
+                        $"Addic7ed: Couldn't find show {request.SeriesName}.");
+
                     return Array.Empty<RemoteSubtitleInfo>();
                 }
                 var season = await GetSeason(showId, request.ParentIndexNumber, cancellationToken).ConfigureAwait(false);
                 var episode = GetEpisode(season, request.IndexNumber, request.Language);
                 if (episode.Count() == 0)
                 {
-                    _logger.Debug("No Episode Found");
+                    _logger?.Info(
+                        $"Addic7ed: No episode found.");
                     return Array.Empty<RemoteSubtitleInfo>();
                 }
 
@@ -461,6 +481,8 @@ namespace Addic7ed
             var download = idParts[0].Replace(",", "/");
             var language = idParts[1];
             var format = "srt";
+            
+            _logger?.Info($"Addic7ed: Get Subtitle {id}");
 
             using (var stream = await GetResponse(download, cancellationToken).ConfigureAwait(false))
             {
@@ -477,7 +499,7 @@ namespace Addic7ed
                         Format = format
                     };
                 }
-
+                _logger?.Info($"Addic7ed: Empty Response {id}");
                 return new SubtitleResponse();
             }
         }
