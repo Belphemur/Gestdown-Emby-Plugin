@@ -25,7 +25,7 @@ using MediaBrowser.Model.Serialization;
 
 namespace Addic7ed
 {
-    class Addic7edDownloader : ISubtitleProvider, IDisposable
+    public class Addic7edDownloader : ISubtitleProvider, IDisposable
     {
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
@@ -312,9 +312,9 @@ namespace Addic7ed
 
         private async Task<IEnumerable<Addic7edResult>> GetSeason(string id, int? season, CancellationToken cancellationToken)
         {
-            if (_showCaches.TryGetValue(id, out var showCache) && season.HasValue && showCache.SeasonEpisodeCount.TryGetValue(season.Value, out var nbEpisode) && nbEpisode == 0)
+            if (_showCaches.TryGetValue(id, out var showCache) && season.HasValue && showCache.Seasons.TryGetValue(season.Value, out var cachedEpisodes))
             {
-                return new List<Addic7edResult>();
+                return cachedEpisodes;
             }
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -325,7 +325,7 @@ namespace Addic7ed
                 var episodes = (await ParseEpisode(res).ConfigureAwait(false)).ToArray();
                 // ReSharper disable once PossibleNullReferenceException
                 // ReSharper disable once PossibleInvalidOperationException
-                showCache.SeasonEpisodeCount[season.Value] = episodes.Length;
+                showCache.Seasons[season.Value] = episodes;
                 return episodes;
             }
         }
@@ -507,22 +507,6 @@ namespace Addic7ed
         public void Dispose()
         {
             _config.NamedConfigurationUpdating -= _config_NamedConfigurationUpdating;
-        }
-
-        public class Addic7edResult
-        {
-            public string Season { get; set; }
-            public string Episode { get; set; }
-            public string Title { get; set; }
-            public string Language { get; set; }
-            public string Version { get; set; }
-            public string Completed { get; set; }
-            public string HearingImpaired { get; set; }
-            public string Corrected { get; set; }
-            public string HD { get; set; }
-            public string Download { get; set; }
-            public string Multi { get; set; }
-            public string Id { get; set; }
         }
     }
 }
