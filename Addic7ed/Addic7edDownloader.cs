@@ -312,13 +312,14 @@ namespace Addic7ed
 
         private async Task<IEnumerable<Addic7edResult>> GetSeason(string id, int? season, CancellationToken cancellationToken)
         {
-            if (_showCaches.TryGetValue(id, out var showCache) && season.HasValue && showCache.Seasons.TryGetValue(season.Value, out var cachedEpisodes))
-            {
-                return cachedEpisodes;
-            }
             if (string.IsNullOrWhiteSpace(id))
             {
                 return new List<Addic7edResult>();
+            }
+
+            if (_showCaches.TryGetValue(id, out var showCache) && season.HasValue && showCache.Seasons.TryGetValue(season.Value, out var cachedEpisodes))
+            {
+                return cachedEpisodes;
             }
             using (var res = await GetResponse($"ajax_loadShow.php?show={id}&season={season}", cancellationToken).ConfigureAwait(false))
             {
