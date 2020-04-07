@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -140,14 +141,34 @@ namespace Addic7ed
             }
         }
 
+        private string CalculateMd5Hash(string input)
+        {
+            // step 1, calculate MD5 hash from input
+            var    md5        = MD5.Create();
+            var inputBytes = Encoding.ASCII.GetBytes(input);
+            var hash       = md5.ComputeHash(inputBytes);
+
+            // step 2, convert byte array to hex string
+            var sb = new StringBuilder();
+            foreach (var byteGroup in hash)
+            {
+                sb.Append(byteGroup.ToString("X2"));
+            }
+
+            return sb.ToString();
+        }
         private Task<HttpResponseInfo> GetResponse(string url, CancellationToken cancellationToken)
         {
+            var addic7EdOptions = GetOptions();
+            var decryptedPass = DecryptPassword(addic7EdOptions.Addic7edPasswordHash);
+            var md5Pass = CalculateMd5Hash(decryptedPass);
             return _httpClient.GetResponse(new HttpRequestOptions
             {
                 Url = $"{_baseUrl}/{url}",
                 CancellationToken = cancellationToken,
                 Referer = _baseUrl,
-                UserAgent = "Mozilla/5.0 (Windows NT 10.0)"
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0)",
+                RequestHeaders = {{"Cookie", $"wikisubtitlespass={md5Pass};wikisubtitlesuser={addic7EdOptions.Addic7edUsername}"}}
             });
         }
 
