@@ -18,7 +18,7 @@ namespace Addic7ed.Model
         {
             ShowId = showId;
             _created = DateTime.UtcNow;
-            _limit = TimeSpan.FromMinutes(10) + TimeSpan.FromSeconds(Random.Next(120));
+            _limit = TimeSpan.FromDays(1) + TimeSpan.FromSeconds(Random.Next(2*3600));
         }
         
     }
