@@ -247,7 +247,7 @@ namespace Addic7ed
             }
             var shows = await GetShows(cancellationToken).ConfigureAwait(false);
             var show = shows.ContainsKey(name) ? shows[name] : null;
-            _showCaches[name] = new ShowCache(name);
+            _showCaches[name] = new ShowCache(show);
             return show;
         }
 
