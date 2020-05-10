@@ -148,6 +148,7 @@ namespace Addic7ed
             if (string.IsNullOrWhiteSpace(request.SeriesName) || !request.ParentIndexNumber.HasValue || !request.IndexNumber.HasValue || string.IsNullOrWhiteSpace(request.Language))
                 return Array.Empty<RemoteSubtitleInfo>();
 
+            _logger.Info($"[Addic7ed] Look for Subtitle for {request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value}");
             var filePath = request.MediaPath.Split(Path.PathSeparator);
             var filename = filePath[filePath.Length - 1];
 
