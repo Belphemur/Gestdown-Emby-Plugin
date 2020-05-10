@@ -138,6 +138,7 @@ namespace Addic7ed
                 Url = $"{_baseUrl}/{url}",
                 CancellationToken = cancellationToken,
                 RequestHeaders = { {"Content-Type", "application/json"}},
+                TimeoutMs = (int)TimeSpan.FromMinutes(5).TotalMilliseconds,
                 RequestContent =  _json.SerializeToString(data).AsMemory()
             });
         }
