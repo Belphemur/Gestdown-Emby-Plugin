@@ -163,9 +163,9 @@ namespace Addic7ed
                     Episode     = request.IndexNumber.Value,
                     FileName    = filename,
                     Season      = request.ParentIndexNumber.Value
-                }, cancellationToken);
+                }, cancellationToken).ConfigureAwait(false);
 
-                var searchResult = (SearchResponse) await _json.DeserializeFromStreamAsync(response.Content, typeof(SearchResponse));
+                var searchResult = (SearchResponse) await _json.DeserializeFromStreamAsync(response.Content, typeof(SearchResponse)).ConfigureAwait(false);
 
                 var subSource = searchResult.Episode.Subtitles;
                 if (searchResult.MatchingSubtitles.Length > 0)
