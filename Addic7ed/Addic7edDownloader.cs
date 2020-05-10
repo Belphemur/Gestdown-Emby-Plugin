@@ -193,7 +193,7 @@ namespace Addic7ed
             var threeLetterIsoLanguageName = NormalizeLanguage(subtitle.Language);
             return new RemoteSubtitleInfo
             {
-                Id                         = $"{subtitle.DownloadUri}:{threeLetterIsoLanguageName}",
+                Id                         = $"{subtitle.DownloadUri.LocalPath.Replace("/", ",")}:{threeLetterIsoLanguageName}",
                 ProviderName               = Name,
                 Name                       = $"{episode.Title} - {subtitle.Version} {(subtitle.HearingImpaired ? "- Hearing Impaired" : "")}",
                 Format                     = "srt",
@@ -204,7 +204,6 @@ namespace Addic7ed
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request, CancellationToken cancellationToken)
         {
-            //await Login(cancellationToken).ConfigureAwait(false);
             if (request.IsForced.HasValue)
             {
                 return Array.Empty<RemoteSubtitleInfo>();
@@ -219,10 +218,12 @@ namespace Addic7ed
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
-            var split = id.Split(':');
-            var dlLink = split[0];
-            var language = split[1];
-            using (var stream = await PostData(dlLink, _addic7EdCreds, cancellationToken))
+            var idParts  = id.Split(new[] { ':' }, 2);
+            var download = idParts[0].Replace(",", "/");
+            var language = idParts[1];
+            _logger.Info($"[Addic7ed] Downloading {download} for language {language}");
+
+            using (var stream = await PostData(download, _addic7EdCreds, cancellationToken))
             {
                 var ms = new MemoryStream();
                 await stream.Content.CopyToAsync(ms);
