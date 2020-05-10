@@ -136,7 +136,7 @@ namespace Addic7ed
         {
             return _httpClient.Post(new HttpRequestOptions
             {
-                Url = $"{_baseUrl}/{url}".Replace("//", "/"),
+                Url = $"{_baseUrl}/{url.Replace("//", "/")}",
                 CancellationToken = cancellationToken,
                 AcceptHeader = "application/json",
                 RequestContentType = "application/json",
