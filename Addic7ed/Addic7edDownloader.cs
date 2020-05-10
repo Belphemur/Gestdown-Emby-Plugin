@@ -23,6 +23,7 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Net;
 using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Serialization;
 
@@ -137,7 +138,8 @@ namespace Addic7ed
             {
                 Url = $"{_baseUrl}/{url}",
                 CancellationToken = cancellationToken,
-                RequestHeaders = { {"Content-Type", "application/json"}},
+                AcceptHeader = "application/json",
+                RequestContentType = "application/json",
                 TimeoutMs = (int)TimeSpan.FromMinutes(5).TotalMilliseconds,
                 RequestContent =  _json.SerializeToString(data).AsMemory()
             });
@@ -152,35 +154,38 @@ namespace Addic7ed
             _logger.Info($"[Addic7ed] Look for Subtitle for {request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value}");
             var filePath = request.MediaPath.Split(Path.PathSeparator);
             var filename = filePath[filePath.Length - 1];
-
-            var response = await PostData("search", new SearchRequest
+            try
             {
-                Show = request.SeriesName,
-                Credentials = _addic7EdCreds,
-                Episode = request.IndexNumber.Value,
-                FileName = filename,
-                Season = request.ParentIndexNumber.Value
-            }, cancellationToken);
+                var response = await PostData("search", new SearchRequest
+                {
+                    Show        = request.SeriesName,
+                    Credentials = _addic7EdCreds,
+                    Episode     = request.IndexNumber.Value,
+                    FileName    = filename,
+                    Season      = request.ParentIndexNumber.Value
+                }, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
+                var searchResult = (SearchResponse) await _json.DeserializeFromStreamAsync(response.Content, typeof(SearchResponse));
+
+                var subSource = searchResult.Episode.Subtitles;
+                if (searchResult.MatchingSubtitles.Length > 0)
+                {
+                    subSource = searchResult.MatchingSubtitles;
+                }
+
+                return subSource
+                       .Select(subtitle => ConvertFromSubtitle(searchResult.Episode, subtitle))
+                       .Where(info => info.ThreeLetterISOLanguageName == request.Language)
+                       .ToArray();
+               
+            }
+            catch (HttpException e)
             {
+                if (e.StatusCode != HttpStatusCode.NotFound) 
+                    throw;
                 _logger.Info($"[Addic7ed] No Subtitle for {request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value}");
-                return Array.Empty<RemoteSubtitleInfo>(); 
+                return Array.Empty<RemoteSubtitleInfo>();
             }
-
-            var searchResult = (SearchResponse) await _json.DeserializeFromStreamAsync(response.Content, typeof(SearchResponse));
-
-            var subSource = searchResult.Episode.Subtitles;
-            if (searchResult.MatchingSubtitles.Length > 0)
-            {
-                subSource = searchResult.MatchingSubtitles;
-            }
-
-            return subSource
-                   .Select(subtitle => ConvertFromSubtitle(searchResult.Episode, subtitle))
-                   .Where(info => info.ThreeLetterISOLanguageName == request.Language)
-                   .ToArray();
-
         }
 
         private RemoteSubtitleInfo ConvertFromSubtitle(Episode episode, Subtitle subtitle)
