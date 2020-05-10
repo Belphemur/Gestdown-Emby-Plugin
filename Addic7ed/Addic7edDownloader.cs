@@ -193,7 +193,7 @@ namespace Addic7ed
             var threeLetterIsoLanguageName = NormalizeLanguage(subtitle.Language);
             return new RemoteSubtitleInfo
             {
-                Id                         = $"{subtitle.DownloadUri.LocalPath.Replace("/", ",")}:{threeLetterIsoLanguageName}",
+                Id                         = $"{subtitle.DownloadUri.Replace("/", ",")}:{threeLetterIsoLanguageName}",
                 ProviderName               = Name,
                 Name                       = $"{episode.Title} - {subtitle.Version} {(subtitle.HearingImpaired ? "- Hearing Impaired" : "")}",
                 Format                     = "srt",
