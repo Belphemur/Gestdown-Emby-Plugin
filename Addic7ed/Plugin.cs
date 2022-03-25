@@ -75,12 +75,6 @@ namespace Addic7ed
             return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.png");
         }
 
-        public ImageFormat ThumbImageFormat
-        {
-            get
-            {
-                return ImageFormat.Jpg;
-            }
-        }
+        public ImageFormat ThumbImageFormat => ImageFormat.Jpg;
     }
 }
