@@ -180,14 +180,15 @@ namespace Addic7ed
 
         private RemoteSubtitleInfo ConvertFromSubtitle(Episode episode, Subtitle subtitle)
         {
-            var threeLetterIsoLanguageName = NormalizeLanguage(subtitle.Language);
+            var twoLetterLanguage = NormalizeLanguage(subtitle.Language);
             return new RemoteSubtitleInfo
             {
-                Id = $"{subtitle.DownloadUri.Replace("/", ",")}:{threeLetterIsoLanguageName}",
+                Id = $"{subtitle.DownloadUri.Replace("/", ",")}:{twoLetterLanguage}",
                 ProviderName = Name,
                 Name = $"{episode.Title} - {subtitle.Version} {(subtitle.HearingImpaired ? "- Hearing Impaired" : "")}",
                 Format = "srt",
-                Language = threeLetterIsoLanguageName
+                Language = twoLetterLanguage,
+                DateCreated = subtitle.Discovered,
             };
         }
 

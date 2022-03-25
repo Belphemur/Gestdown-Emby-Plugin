@@ -11,5 +11,10 @@ namespace Addic7ed.Model.Addicted
         public bool HD { get; set; }
         public string DownloadUri { get; set; }
         public string Language { get; set; }
+        
+        /// <summary>
+        /// When was the subtitle discovered
+        /// </summary>
+        public DateTime Discovered { get; }
     }
 }
