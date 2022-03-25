@@ -42,9 +42,10 @@ namespace Addic7ed
 
         private readonly string _baseUrl = "http://localhost:5000/addic7ed";
         private readonly ILocalizationManager _localizationManager;
-        private  Addic7edCreds _addic7EdCreds;
+        private Addic7edCreds _addic7EdCreds;
 
-        public Addic7edDownloader(ILogger logger, IHttpClient httpClient, IServerConfigurationManager config, IEncryptionManager encryption, IJsonSerializer json, IFileSystem fileSystem, ILocalizationManager localizationManager)
+        public Addic7edDownloader(ILogger logger, IHttpClient httpClient, IServerConfigurationManager config, IEncryptionManager encryption, IJsonSerializer json, IFileSystem fileSystem,
+                                  ILocalizationManager localizationManager)
         {
             _logger = logger;
             _httpClient = httpClient;
@@ -61,15 +62,16 @@ namespace Addic7ed
         private void SetCreds()
         {
             var addic7EdOptions = GetOptions();
-            var decryptedPass   = DecryptPassword(addic7EdOptions.Addic7edPasswordHash);
+            var decryptedPass = DecryptPassword(addic7EdOptions.Addic7edPasswordHash);
             _addic7EdCreds = new Addic7edCreds
             {
-                UserId   = int.Parse(addic7EdOptions.Addic7edUsername),
+                UserId = int.Parse(addic7EdOptions.Addic7edUsername),
                 Password = decryptedPass
             };
         }
 
         private const string PasswordHashPrefix = "h:";
+
         void _config_NamedConfigurationUpdating(object sender, ConfigurationUpdateEventArgs e)
         {
             if (!string.Equals(e.Key, "addic7ed", StringComparison.OrdinalIgnoreCase))
@@ -112,27 +114,19 @@ namespace Addic7ed
 
         public IEnumerable<VideoContentType> SupportedMediaTypes
         {
-            get
-            {
-                return new[] { VideoContentType.Episode, VideoContentType.Movie };
-            }
+            get { return new[] { VideoContentType.Episode, VideoContentType.Movie }; }
         }
 
         private string NormalizeLanguage(string language)
         {
-            if (language != null)
-            {
-                var culture = _localizationManager.FindLanguageInfo(language.AsSpan());
-                if (culture != null)
-                {
-                    return culture.ThreeLetterISOLanguageName;
-                }
-            }
+            if (language == null)
+                return language;
+            var culture = _localizationManager.FindLanguageInfo(language.AsSpan());
 
-            return language;
+            return culture != null ? culture.TwoLetterISOLanguageName : language;
         }
 
-        private Task<HttpResponseInfo> PostData<T>(string url, T data,  CancellationToken cancellationToken)
+        private Task<HttpResponseInfo> PostData<T>(string url, T data, CancellationToken cancellationToken)
         {
             return _httpClient.Post(new HttpRequestOptions
             {
@@ -141,47 +135,43 @@ namespace Addic7ed
                 AcceptHeader = "application/json",
                 RequestContentType = "application/json",
                 TimeoutMs = (int)TimeSpan.FromMinutes(5).TotalMilliseconds,
-                RequestContent =  _json.SerializeToString(data).AsMemory()
+                RequestContent = _json.SerializeToString(data).AsMemory()
             });
         }
-        
+
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> SearchEpisode(SubtitleSearchRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.SeriesName) || !request.ParentIndexNumber.HasValue || !request.IndexNumber.HasValue || string.IsNullOrWhiteSpace(request.Language))
                 return Array.Empty<RemoteSubtitleInfo>();
 
-            _logger.Info($"[Addic7ed] Look for Subtitle for {request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value}");
+            _logger.Info($"[Addic7ed] Look for Subtitle for {request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value} in {request.Language}");
             var filePath = request.MediaPath.Split(Path.PathSeparator);
             var filename = filePath[filePath.Length - 1];
             try
             {
                 var response = await PostData("search", new SearchRequest
                 {
-                    Show        = request.SeriesName,
+                    Show = request.SeriesName,
                     Credentials = _addic7EdCreds,
-                    Episode     = request.IndexNumber.Value,
-                    FileName    = filename,
-                    Season      = request.ParentIndexNumber.Value
+                    Episode = request.IndexNumber.Value,
+                    FileName = filename,
+                    Season = request.ParentIndexNumber.Value,
+                    LanguageISO = request.Language
                 }, cancellationToken).ConfigureAwait(false);
 
-                var searchResult = (SearchResponse) await _json.DeserializeFromStreamAsync(response.Content, typeof(SearchResponse)).ConfigureAwait(false);
+                var searchResult = (SearchResponse)await _json.DeserializeFromStreamAsync(response.Content, typeof(SearchResponse)).ConfigureAwait(false);
 
-                var subSource = searchResult.Episode.Subtitles;
-                if (searchResult.MatchingSubtitles.Length > 0)
-                {
-                    subSource = searchResult.MatchingSubtitles;
-                }
 
-                return subSource
-                       .Select(subtitle => ConvertFromSubtitle(searchResult.Episode, subtitle))
-                       .Where(info => info.ThreeLetterISOLanguageName == request.Language)
-                       .ToArray();
-               
+                _logger.Info($"[Addic7ed]{request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value}: {searchResult.MatchingSubtitles.Length} subs found.");
+
+                return searchResult.MatchingSubtitles
+                                   .Select(subtitle => ConvertFromSubtitle(searchResult.Episode, subtitle))
+                                   .ToArray();
             }
             catch (HttpException e)
             {
-                if (e.StatusCode != HttpStatusCode.NotFound) 
+                if (e.StatusCode != HttpStatusCode.NotFound)
                     throw;
                 _logger.Info($"[Addic7ed] No Subtitle for {request.SeriesName} S{request.ParentIndexNumber.Value}E{request.IndexNumber.Value}");
                 return Array.Empty<RemoteSubtitleInfo>();
@@ -193,11 +183,11 @@ namespace Addic7ed
             var threeLetterIsoLanguageName = NormalizeLanguage(subtitle.Language);
             return new RemoteSubtitleInfo
             {
-                Id                         = $"{subtitle.DownloadUri.Replace("/", ",")}:{threeLetterIsoLanguageName}",
-                ProviderName               = Name,
-                Name                       = $"{episode.Title} - {subtitle.Version} {(subtitle.HearingImpaired ? "- Hearing Impaired" : "")}",
-                Format                     = "srt",
-                ThreeLetterISOLanguageName = threeLetterIsoLanguageName
+                Id = $"{subtitle.DownloadUri.Replace("/", ",")}:{threeLetterIsoLanguageName}",
+                ProviderName = Name,
+                Name = $"{episode.Title} - {subtitle.Version} {(subtitle.HearingImpaired ? "- Hearing Impaired" : "")}",
+                Format = "srt",
+                Language = threeLetterIsoLanguageName
             };
         }
 
@@ -208,6 +198,7 @@ namespace Addic7ed
             {
                 return Array.Empty<RemoteSubtitleInfo>();
             }
+
             if (request.ContentType.Equals(VideoContentType.Episode))
             {
                 return await SearchEpisode(request, cancellationToken);
@@ -218,23 +209,21 @@ namespace Addic7ed
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
-            var idParts  = id.Split(new[] { ':' }, 2);
+            var idParts = id.Split(new[] { ':' }, 2);
             var download = idParts[0].Replace(",", "/");
             var language = idParts[1];
             _logger.Info($"[Addic7ed] Downloading {download} for language {language}");
 
-            using (var stream = await PostData(download, _addic7EdCreds, cancellationToken))
+            using var stream = await PostData(download, _addic7EdCreds, cancellationToken);
+            var ms = new MemoryStream();
+            await stream.Content.CopyToAsync(ms, cancellationToken);
+            ms.Position = 0;
+            return new SubtitleResponse()
             {
-                var ms = new MemoryStream();
-                await stream.Content.CopyToAsync(ms);
-                ms.Position = 0;
-                return new SubtitleResponse()
-                {
-                    Language = language,
-                    Stream   = ms,
-                    Format   = "srt"
-                };
-            }
+                Language = language,
+                Stream = ms,
+                Format = "srt"
+            };
         }
 
         public void Dispose()
