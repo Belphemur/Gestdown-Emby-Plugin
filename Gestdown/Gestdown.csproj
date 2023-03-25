@@ -4,19 +4,16 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyVersion>2.0.0</AssemblyVersion>
     <FileVersion>2.0.0</FileVersion>
-    <LangVersion>8</LangVersion>
+    <LangVersion>10</LangVersion>
+    <RootNamespace>Addic7ed</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="thumb.png" />
+    <None Remove="logo.jpeg" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="thumb.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="mediabrowser.server.core" Version="4.7.0.27" />
+    <PackageReference Include="mediabrowser.server.core" Version="4.8.0.24-beta" />
     <PackageReference Include="System.Memory" Version="4.5.3" />
   </ItemGroup>
 

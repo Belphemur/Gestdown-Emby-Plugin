@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using Addic7ed.Models;
+using Gestdown.Models;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Configuration;
@@ -28,9 +28,9 @@ using MediaBrowser.Model.Net;
 using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Serialization;
 
-namespace Addic7ed
+namespace Gestdown
 {
-    class Addic7edDownloader : ISubtitleProvider, IDisposable
+    class GestdownDownloader : ISubtitleProvider, IDisposable
     {
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
@@ -42,18 +42,18 @@ namespace Addic7ed
         private readonly ILocalizationManager _localizationManager;
         private readonly Version _clientVersion;
 
-        public Addic7edDownloader(ILogger logger, IHttpClient httpClient, ILibraryManager libraryManager, IJsonSerializer jsonSerializer, ILocalizationManager localizationManager)
+        public GestdownDownloader(ILogger logger, IHttpClient httpClient, ILibraryManager libraryManager, IJsonSerializer jsonSerializer, ILocalizationManager localizationManager)
         {
             _logger = logger;
             _httpClient = httpClient;
             _libraryManager = libraryManager;
             _jsonSerializer = jsonSerializer;
             _localizationManager = localizationManager;
-            _clientVersion = Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(1, 0, 0);
+            _clientVersion = Assembly.GetEntryAssembly()?.GetName().Version ?? typeof(GestdownDownloader).Assembly.GetName().Version ?? new Version(1, 0, 0);
         }
 
 
-        public string Name => "Addic7ed";
+        public string Name => "Gestdown";
 
 
         public IEnumerable<VideoContentType> SupportedMediaTypes => new[] { VideoContentType.Episode };
