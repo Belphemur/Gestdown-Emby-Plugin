@@ -13,7 +13,7 @@
     <PackageReference Include="System.Memory" Version="4.5.5" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="logo.jpeg" />
+    <EmbeddedResource Include="thumb.png" />
   </ItemGroup>
 
 </Project>

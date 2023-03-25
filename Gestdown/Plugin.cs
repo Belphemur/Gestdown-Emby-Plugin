@@ -48,9 +48,9 @@ namespace Gestdown
         public Stream GetThumbImage()
         {
             var type = GetType();
-            return type.Assembly.GetManifestResourceStream(type.Namespace + ".logo.jpeg");
+            return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.png");
         }
 
-        public ImageFormat ThumbImageFormat => ImageFormat.Jpg;
+        public ImageFormat ThumbImageFormat => ImageFormat.Png;
     }
 }
