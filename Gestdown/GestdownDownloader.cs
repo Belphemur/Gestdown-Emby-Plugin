@@ -38,7 +38,7 @@ namespace Gestdown
         private readonly IJsonSerializer _jsonSerializer;
 
 
-        private readonly string _baseUrl = "https://api.gestdown.info";
+        private const string BaseUrl = "https://api.gestdown.info";
         private readonly ILocalizationManager _localizationManager;
         private readonly Version _clientVersion;
 
@@ -97,9 +97,9 @@ namespace Gestdown
         {
             return _httpClient.GetResponse(new HttpRequestOptions
             {
-                Url = $"{_baseUrl}/{url}",
+                Url = $"{BaseUrl}/{url}",
                 CancellationToken = cancellationToken,
-                Referer = _baseUrl,
+                Referer = BaseUrl,
                 UserAgent = "Emby/" + _clientVersion
             });
         }
@@ -107,20 +107,34 @@ namespace Gestdown
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> SearchEpisode(SubtitleSearchRequest request, CancellationToken cancellationToken)
         {
-            var items = _libraryManager.GetItemList(new InternalItemsQuery
+            string? tvDbId;
+            try
             {
-                IncludeItemTypes = new []{"Series"},
-                SearchTerm = request.SeriesName
-            });
-
-            if (items == null || items.Length == 0)
-            {
-                _logger.Info($"Couldn't find the show in library");
-                return Array.Empty<RemoteSubtitleInfo>();
+                request.SeriesProviderIds.TryGetValue(MetadataProviders.Tvdb.ToString(), out tvDbId);
+                if (tvDbId == null)
+                {
+                    _logger.Warn($"[{Name}] No TVDB id for show: {request.SeriesName}");
+                    return Array.Empty<RemoteSubtitleInfo>();
+                }
             }
+            //Fallback if using older version than 4.8.0.24
+            catch (Exception)
+            {
+                var items = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new []{"Series"},
+                    SearchTerm = request.SeriesName
+                });
 
-            var tvDbId = items.First().GetProviderId(MetadataProviders.Tvdb);
-            _logger.Info($"Getting show for show tvdb: {tvDbId}");
+                if (items == null || items.Length == 0)
+                {
+                    _logger.Warn($"[{Name}] Couldn't find the show in library");
+                    return Array.Empty<RemoteSubtitleInfo>();
+                }
+
+                tvDbId = items.First().GetProviderId(MetadataProviders.Tvdb);
+            }
+           
 
             var language = request.Language;
 
@@ -154,6 +168,7 @@ namespace Gestdown
                     Id = $"{subtitle.downloadUri.Substring(1).Replace("/", ",")}:{subtitle.language}",
                     ProviderName = Name,
                     Name = $"{subtitle.version}{(subtitle.hearingImpaired ? "- Hearing Impaired" : "")}",
+                    DateCreated = subtitle.discovered,
                     Format = "srt",
                     Language = subtitle.language,
                     DownloadCount = subtitle.downloadCount
