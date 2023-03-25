@@ -37,7 +37,7 @@ namespace Gestdown
         /// <value>The description.</value>
         public override string Description => "Proxy service for the Addic7ed website. No Login required.";
 
-        private readonly Guid _id = new Guid("53B91E1D-888B-4698-AC30-A19CF27B3890");
+        private readonly Guid _id = new("53B91E1D-888B-4698-AC30-A19CF27B3890");
         public override Guid Id => _id;
 
         public IEnumerable<PluginPageInfo> GetPages()
@@ -48,9 +48,9 @@ namespace Gestdown
         public Stream GetThumbImage()
         {
             var type = GetType();
-            return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.png");
+            return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.jpg");
         }
 
-        public ImageFormat ThumbImageFormat => ImageFormat.Png;
+        public ImageFormat ThumbImageFormat => ImageFormat.Jpg;
     }
 }
