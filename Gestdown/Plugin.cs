@@ -29,13 +29,13 @@ namespace Gestdown
         /// Gets the name of the plugin
         /// </summary>
         /// <value>The name.</value>
-        public override string Name => "Gestdown Proxy: Gestdown";
+        public override string Name => "Addic7ed Proxy: Gestdown";
 
         /// <summary>
         /// Gets the description.
         /// </summary>
         /// <value>The description.</value>
-        public override string Description => "Proxy service for the Gestdown website. No Login required.";
+        public override string Description => "Proxy service for the Addic7ed website. No Login required.";
 
         private readonly Guid _id = new Guid("53B91E1D-888B-4698-AC30-A19CF27B3890");
         public override Guid Id => _id;
