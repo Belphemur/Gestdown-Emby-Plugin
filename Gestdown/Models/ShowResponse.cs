@@ -7,13 +7,13 @@ namespace Gestdown.Models
     {
         public class Show
         {
-            public string id { get; set; }
-            public string name { get; set; }
+            public string id { get; set; } = null!;
+            public string name { get; set; } = null!;
             public int nbSeasons { get; set; }
-            public List<int> seasons { get; set; }
+            public List<int> seasons { get; set; } = null!;
             public int tvDbId { get; set; }
         }
 
-        public List<Show> shows { get; set; }
+        public List<Show> shows { get; set; } = null!;
     }
 }
