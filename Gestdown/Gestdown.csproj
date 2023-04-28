@@ -9,14 +9,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="mediabrowser.server.core" Version="4.8.0.24-beta"/>
-        <PackageReference Include="System.Memory" Version="4.5.5"/>
+        <PackageReference Include="mediabrowser.server.core" Version="4.8.0.27-beta" />
+        <PackageReference Include="System.Memory" Version="4.5.5" />
     </ItemGroup>
     <ItemGroup>
-        <None Remove="thumb.jpg"/>
+        <None Remove="thumb.jpg" />
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Include="thumb.jpg"/>
+        <EmbeddedResource Include="thumb.jpg" />
     </ItemGroup>
 
 </Project>

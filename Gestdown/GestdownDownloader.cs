@@ -122,7 +122,7 @@ namespace Gestdown
             {
                 var items = _libraryManager.GetItemList(new InternalItemsQuery
                 {
-                    IncludeItemTypes = new []{"Series"},
+                    IncludeItemTypes = new[] { "Series" },
                     SearchTerm = request.SeriesName
                 });
 
@@ -134,7 +134,7 @@ namespace Gestdown
 
                 tvDbId = items.First().GetProviderId(MetadataProviders.Tvdb);
             }
-           
+
 
             var language = request.Language;
 
@@ -151,6 +151,7 @@ namespace Gestdown
             var showResponse = await GetJsonResponse<ShowResponse>($"shows/external/tvdb/{tvDbId}", cancellationToken).ConfigureAwait(false);
             if (showResponse == null || showResponse.shows.Count == 0)
             {
+                _logger.Warn($"[{Name}] No show found with TVDB id: {tvDbId}");
                 return Array.Empty<RemoteSubtitleInfo>();
             }
 
@@ -160,19 +161,22 @@ namespace Gestdown
                 var episodes = await GetJsonResponse<SubtitleSearchResponse>($"subtitles/get/{show.id}/{request.ParentIndexNumber}/{request.IndexNumber}/{language}", cancellationToken).ConfigureAwait(false);
                 if (episodes == null || episodes.matchingSubtitles.Count == 0)
                 {
+                    _logger.Info($"[{Name}] No subtitle found for ShowId: {show.id}");
                     continue;
                 }
 
-                return episodes.matchingSubtitles.Select(subtitle => new RemoteSubtitleInfo
-                {
-                    Id = $"{subtitle.downloadUri.Substring(1).Replace("/", ",")}:{subtitle.language}",
-                    ProviderName = Name,
-                    Name = $"{subtitle.version}{(subtitle.hearingImpaired ? "- Hearing Impaired" : "")}",
-                    DateCreated = subtitle.discovered,
-                    Format = "srt",
-                    Language = subtitle.language,
-                    DownloadCount = subtitle.downloadCount
-                });
+                return episodes.matchingSubtitles
+                    .OrderBy(subtitle => subtitle.hearingImpaired)
+                    .Select(subtitle => new RemoteSubtitleInfo
+                    {
+                        Id = $"{subtitle.downloadUri.Substring(1).Replace("/", ",")}:{subtitle.language}",
+                        ProviderName = Name,
+                        Name = $"{subtitle.version}{(subtitle.hearingImpaired ? "- Hearing Impaired" : "")}",
+                        DateCreated = subtitle.discovered,
+                        Format = "srt",
+                        Language = subtitle.language,
+                        DownloadCount = subtitle.downloadCount
+                    });
             }
 
             return Array.Empty<RemoteSubtitleInfo>();
@@ -209,7 +213,7 @@ namespace Gestdown
             var download = idParts[0].Replace(",", "/");
             var language = idParts[1];
             var format = "srt";
-            
+
             using var stream = await GetResponse(download, cancellationToken).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(stream.ContentType) &&
                 !stream.ContentType.Contains(format))
